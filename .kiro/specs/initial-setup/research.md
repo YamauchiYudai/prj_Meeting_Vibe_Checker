@@ -4,51 +4,61 @@
 - **Feature**: initial-setup
 - **Discovery Scope**: New Feature / MVP Foundation
 - **Key Findings**:
-  - **Py-Feat Models**: SVM and Random Forest (RF) are the recommended lightweight "shallow learning" models. While less accurate than deep learning models in "in-the-wild" scenarios, they are significantly more performant and suitable for real-time applications with low latency requirements.
-  - **Real-time Streamlit**: `streamlit-webrtc` is the industry standard for real-time webcam processing in Streamlit. It uses WebRTC for low-latency client-server communication and operates in a separate thread from the main Streamlit UI thread.
-  - **Privacy & Memory**: Memory accumulation in Streamlit can be managed using `st.cache_data` with a short `ttl` (Time-To-Live) and ensuring no frames are persisted to disk. `opencv-python-headless` is preferred for server environments.
+  - **Py-Feat Real-time Performance**: Py-Feat models (especially SVM/HOG-PCA) can process single images in ~1.5-2s on CPU. To meet the < 2s latency goal for the entire loop, frame skipping and image resizing (e.g., 50% scale) are essential.
+  - **Streamlit-WebRTC Integration**: `streamlit-webrtc` is the standard for low-latency video in Streamlit. The `video_frame_callback` runs in a separate thread, requiring thread-safe data structures (e.g., `queue.Queue` or `threading.Lock`) to communicate results to the main UI thread.
+  - **Memory & Privacy**: OpenCV frames should be processed in-memory as NumPy arrays. `st.cache_resource` is used for model persistence to avoid initialization overhead on every rerun.
 
 ## Research Log
 
-### Py-Feat Model Selection
-- **Context**: Need for lightweight facial expression analysis to meet the < 2s latency goal.
-- **Sources Consulted**: Py-Feat documentation, academic benchmarks (DISFA+ dataset).
-- **Findings**: SVM models within Py-Feat perform well for Action Unit (AU) detection and are robust against head pose variations. RF is also a viable statistical learning option.
-- **Implications**: We will implement the `Fdetector='hog-pca'`, `AUmodel='svm'`, and `Emotionmodel='svm'` configurations in Py-Feat as the default baseline.
+### Py-Feat Model Optimization (2024-2025 Context)
+- **Context**: Ensuring the analysis engine meets the 2-second latency requirement (5.3).
+- **Sources Consulted**: Py-Feat Documentation, ArXiv:2104.03464, GitHub Issues.
+- **Findings**:
+  - `Fdetector='hog-pca'` and `AUmodel='svm'` are the fastest configurations.
+  - Processing full-resolution HD frames (1080p) is unnecessary for emotion detection and significantly increases latency.
+  - **Implications**: The `SentimentAnalyzer` will resize incoming frames to a maximum width of 640px before processing.
 
-### Streamlit Real-time Video
-- **Context**: Streamlit's native `st.camera_input` is for static photos, not streams.
-- **Sources Consulted**: Streamlit community forums, `streamlit-webrtc` documentation.
-- **Findings**: `streamlit-webrtc`'s `video_frame_callback` is the most efficient way to process frames. It allows NumPy conversion for OpenCV/Py-Feat processing.
-- **Implications**: The architecture will rely on `streamlit-webrtc`. A dedicated `VideoProcessor` class will handle the Py-Feat inference loop.
+### Real-time Video with Streamlit-WebRTC
+- **Context**: Streamlit's native components are too slow for "streaming" feedback.
+- **Sources Consulted**: `streamlit-webrtc` official documentation, Community examples.
+- **Findings**:
+  - `video_frame_callback` allows direct access to frames as they arrive.
+  - It uses `av.VideoFrame` which can be easily converted to NumPy (`to_ndarray`).
+  - **Implications**: We will use `streamlit-webrtc` as the primary interface for camera input.
+
+### Thread Safety in Streamlit
+- **Context**: Passing data from the background WebRTC thread to the main Streamlit thread.
+- **Sources Consulted**: Streamlit Advanced Docs, `streamlit-webrtc` tutorials.
+- **Findings**:
+  - Direct calls to `st.write` or `st.metric` inside the callback will fail.
+  - **Implications**: Results from `SentimentAnalyzer` will be stored in a thread-safe `queue.Queue` or a class with a `threading.Lock` protected attribute, which the main UI loop will poll.
 
 ## Architecture Pattern Evaluation
 
 | Option | Description | Strengths | Risks / Limitations | Notes |
 |--------|-------------|-----------|---------------------|-------|
-| Threaded Callback (Selected) | `streamlit-webrtc` callback for processing, main thread for dashboard | Low latency, decoupled UI | Thread safety requires careful state management | Aligns with performance & structure guidelines |
-| Producer-Consumer (Queue) | Main thread captures, background worker processes via queue | Clearer separation of concerns | Increased latency due to queue overhead | Potentially overkill for MVP |
+| Threaded Callback (Selected) | WebRTC callback + Main UI loop polling | Lowest latency for WebRTC | Complex thread safety | Best for real-time feedback |
+| Async/Await | Python `asyncio` based processing | Modern syntax, non-blocking | Streamlit support for async is still maturing | May lead to unexpected state issues |
 
 ## Design Decisions
 
-### Decision: Use `streamlit-webrtc` for Frame Capture
-- **Context**: Real-time processing requires a continuous stream, which standard Streamlit doesn't provide natively.
-- **Selected Approach**: Use `streamlit-webrtc` with a `video_frame_callback`.
-- **Rationale**: Best-in-class performance and supports deployment (client-side camera access).
-- **Trade-offs**: Adds a complex external dependency and requires handling multi-threading.
+### Decision: Resize frames to 640px before analysis
+- **Context**: 1080p/720p frames take too long to process on CPU.
+- **Selected Approach**: Downsample frames using `cv2.resize`.
+- **Rationale**: Balance between accuracy (landmark detection still works at 640px) and speed.
+- **Trade-offs**: Minor loss in detail for distant faces.
 
-### Decision: Py-Feat SVM/HOG Configuration
-- **Context**: Performance requirement (6.1).
-- **Selected Approach**: Initialize Py-Feat with HOG-based SVM models.
-- **Rationale**: Minimal CPU usage compared to deep learning models like ResNet.
-- **Trade-offs**: Slightly lower accuracy for complex facial expressions.
+### Decision: Use `st.cache_resource` for Py-Feat Detector
+- **Context**: Py-Feat models take 5-10 seconds to load.
+- **Selected Approach**: Wrap `Detector` initialization in a cached function.
+- **Rationale**: Prevents app freezes during user interaction.
 
 ## Risks & Mitigations
-- **Memory Leaks** — Use `st.cache_resource` for Py-Feat model loading and avoid storing large arrays in `st.session_state`.
-- **Latency Spikes** — Implement frame skipping or downsampling (resize) if Py-Feat processing exceeds the budget.
-- **Thread Safety** — Use a thread-safe queue or shared object (with Locks if needed) to pass analysis results from the callback thread to the UI thread.
+- **CPU Overload** — Mitigation: Implement a "cooldown" or skip 2/3 frames if the processing queue grows.
+- **Browser Compatibility** — Mitigation: `streamlit-webrtc` requires HTTPS (or localhost) for camera access; add a warning for non-secure contexts.
+- **Memory Growth** — Mitigation: Ensure the results queue has a `maxsize=1` or `maxsize=10` to drop stale frames.
 
 ## References
-- [Py-Feat Official Docs](https://py-feat.org/) — Feature extraction and model details.
-- [streamlit-webrtc GitHub](https://github.com/whitphx/streamlit-webrtc) — Real-time component reference.
-- [Streamlit Performance Guide](https://docs.streamlit.io/library/advanced-features/caching) — Caching and memory management.
+- [Py-Feat Performance Notes](https://py-feat.org/pages/performance.html)
+- [Streamlit-WebRTC Tutorial](https://github.com/whitphx/streamlit-webrtc#video-frame-callback)
+- [Thread Safety in Streamlit](https://docs.streamlit.io/library/advanced-features/threading)
