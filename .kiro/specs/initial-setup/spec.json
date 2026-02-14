@@ -1,13 +1,13 @@
 {
   "feature_name": "initial-setup",
   "created_at": "2026-02-11T22:58:00Z",
-  "updated_at": "2026-02-11T22:58:00Z",
+  "updated_at": "2026-02-13T00:00:00Z",
   "language": "ja",
-  "phase": "tasks_generated",
+  "phase": "requirements-generated",
   "approvals": {
     "requirements": {
       "generated": true,
-      "approved": true
+      "approved": false
     },
     "design": {
       "generated": true,

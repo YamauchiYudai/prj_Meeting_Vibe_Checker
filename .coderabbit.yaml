@@ -1,0 +1,9 @@
+# .coderabbit.yaml
+language: ja-JP
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  high_level_summary: true
+  poetic: false
+chat:
+  enabled: true
