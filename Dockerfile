@@ -28,13 +28,34 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Stage 2: Development
 FROM base AS development
 
-COPY requirements.txt .
-
-# Install core build-time dependencies
 RUN pip install --no-cache-dir Cython setuptools wheel
 
-# Install all major dependencies from requirements.txt
-# Note: py-feat installation might still be tricky, but settle dependencies first
+# Install core stack with tight pins
+# Use numpy < 1.24 to satisfy nltools
+RUN pip install --no-cache-dir \
+    "numpy==1.23.5" \
+    "pandas>=2.0.0,<2.1.0" \
+    "scipy>=1.10.0,<1.11.0" \
+    "scikit-learn>=1.2.0,<1.4.0" \
+    "h5py>=3.8.0,<3.10.0" \
+    "seaborn>=0.12.0" \
+    "scikit-image>=0.20.0"
+
+# Install other py-feat dependencies
+# Explicitly add xgboost
+RUN pip install --no-cache-dir \
+    tqdm celluloid easing-functions kornia av xgboost \
+    torch torchvision --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Install nltools and py-feat with --no-deps
+RUN pip install --no-cache-dir nltools==0.5.1 && \
+    pip install --no-cache-dir py-feat==0.6.2 --no-deps
+
+# ENSURE matplotlib is >= 3.8.0 at the end to satisfy nilearn
+RUN pip install --no-cache-dir "matplotlib>=3.8.0"
+
+# Now install remaining app dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
@@ -43,7 +64,8 @@ COPY . .
 FROM base AS production
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir "numpy==1.23.5" "pandas>=2.0.0,<2.1.0" && \
+    pip install --no-cache-dir -r requirements.txt
 
 COPY src/ ./src/
 

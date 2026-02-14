@@ -11,7 +11,13 @@ services:
         - type=gha,mode=max
     volumes:
       - .:/app
+      - pyfeat_models:/root/.feat
+    ports:
+      - "8501:8501"
+      - "49152-49170:49152-49170/udp"
+    command: streamlit run src/ui/app.py
     environment:
+      - PYTHONPATH=.
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
     stdin_open: true
@@ -23,8 +29,10 @@ services:
       target: development
     volumes:
       - .:/app
+      - pyfeat_models:/root/.feat
     command: pytest
     environment:
+      - PYTHONPATH=.
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
 
@@ -35,3 +43,6 @@ services:
     volumes:
       - .:/app
     command: ruff check .
+
+volumes:
+  pyfeat_models:

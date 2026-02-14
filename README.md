@@ -1,48 +1,48 @@
 # Meeting Vibe Checker (MVP)
 
-Meeting Vibe Checker は、デジタル会議中の感情のトーンやエンゲージメントレベルをリアルタイムで解析・可視化するツールです。
+オンライン会議やワークショップの参加者の感情・エンゲージメントをリアルタイムで可視化するツール。
 
-## 🌟 主な機能
+## 🚀 クイックスタート (Docker)
 
-- **リアルタイム表情解析**: Webカメラの映像から参加者の表情を読み取り、感情（喜び、悲しみ、怒りなど）を分析します。
-- **ライブダッシュボード**: 解析された「雰囲気（Vibe）」をグラフやメトリクスで即座に表示します。
-- **プライバシー保護**: 画像データはローカルのメモリ内でのみ処理され、ディスクへの保存や外部への送信は一切行われません。
+Docker環境を使用して、依存関係の構築から実行までを自動化しています。
+
+### 1. アプリケーションの起動
+```bash
+docker-compose up app
+```
+起動後、ブラウザで `http://localhost:8501` にアクセスしてください。
+※ 初回起動時は Py-Feat の学習済みモデルのダウンロード（約1.5GB）が発生するため、5-10分程度かかる場合があります。
+
+### 2. テストの実行
+```bash
+docker-compose run --rm tests
+```
+
+### 3. リンター/フォーマッタ (Ruff)
+```bash
+docker-compose run --rm lint
+```
 
 ## 🛠 技術スタック
 
-- **Language**: Python 3.9+
-- **GUI Framework**: Streamlit (リアルタイムダッシュボード用)
-- **AI/CV Library**: 
-  - [Py-Feat](https://py-feat.org/): 表情解析 (HOG-PCA / SVMモデル)
-  - [OpenCV](https://opencv.org/): 画像キャプチャ・前処理
-  - [streamlit-webrtc](https://github.com/whitphx/streamlit-webrtc): 低レイテンシなWebRTCストリーミング
-- **Data Handling**: Pandas, NumPy
+- **Python 3.10**: AIライブラリの互換性を重視。
+- **Streamlit**: 高速なダッシュボード構築。
+- **streamlit-webrtc**: ブラウザベースのリアルタイムビデオストリーミング。
+- **Py-Feat**: 顔検出、ランドマーク、AU、感情推定の統合ツールボックス。
+- **Docker**: 複雑な依存関係（OpenCV, PyTorch等）をカプセル化。
 
-## 🏗 アーキテクチャ
+## 📁 プロジェクト構造
 
-本プロジェクトは、`streamlit-webrtc` を利用した **Threaded Callback Architecture** を採用しています。ビデオフレームのキャプチャと Py-Feat による解析はバックグラウンドスレッドで実行され、UIスレッドをブロックすることなくリアルタイムな可視化を実現します。
+- `src/analysis/`: Py-Feat を用いた表情解析ロジック。
+- `src/ui/`: Streamlit および WebRTC によるインターフェース。
+- `tests/`: TDDに基づく各機能の検証コード。
 
-詳細は `.kiro/specs/initial-setup/design.md` を参照してください。
+## 🔒 プライバシーについて
 
-## 🚀 はじめかた
+- すべての画像処理は**メモリ内のみ**で行われます。
+- 解析後のフレームデータは即座に破棄され、ディスクへの保存や外部への送信は行われません。
 
-### 1. 環境構築
-```bash
-# 仮想環境の作成 (推奨)
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+## ⚠️ 注意事項
 
-# 依存ライブラリのインストール
-pip install -r requirements.txt
-```
-
-### 2. アプリケーションの起動
-```bash
-streamlit run src/app.py
-```
-
-## 🔒 プライバシーポリシー (Privacy First)
-
-- 全ての画像処理はユーザーのローカルPC内で行われます。
-- キャプチャした画像フレームは解析後、直ちにメモリから破棄されます。
-- raw画像や個人を特定できるデータが永続化されることはありません。
+- WebRTC を使用するため、カメラへのアクセス許可が必要です。
+- 非 localhost 環境（リモートサーバー等）で実行する場合は、ブラウザのセキュリティ制限により HTTPS 通信が必須となります。
