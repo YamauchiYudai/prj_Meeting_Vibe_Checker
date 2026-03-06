@@ -1,48 +1,37 @@
-version: '3.8'
-
+version: '3.9'
 services:
-  app:
-    build:
-      context: .
-      target: development
-      cache_from:
-        - type=gha
-      cache_to:
-        - type=gha,mode=max
-    volumes:
-      - .:/app
-      - pyfeat_models:/root/.feat
+  frontend:
+    build: ./frontend
     ports:
-      - "8501:8501"
-      - "49152-49170:49152-49170/udp"
-    command: streamlit run src/ui/app.py
-    environment:
-      - PYTHONPATH=.
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
-    stdin_open: true
-    tty: true
+      - "3000:3000"
+    env_file: .env
+    depends_on:
+      - backend
 
-  tests:
-    build:
-      context: .
-      target: development
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
     volumes:
-      - .:/app
-      - pyfeat_models:/root/.feat
-    command: pytest
-    environment:
-      - PYTHONPATH=.
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
+      - ./backend:/app
 
-  lint:
-    build:
-      context: .
-      target: development
+  db:
+    image: postgres:15
+    env_file: .env
+    ports:
+      - "5432:5432"
     volumes:
-      - .:/app
-    command: ruff check .
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  pyfeat_models:
+  postgres_data:
