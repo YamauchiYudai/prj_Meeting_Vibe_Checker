@@ -32,5 +32,3 @@ task.md*
 walkthrough.md*
 result_*.md
 integration_test_plan.md
-run_tests.sh
-check_db.py

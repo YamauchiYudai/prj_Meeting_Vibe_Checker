@@ -1,9 +1,8 @@
-import { api } from '@/lib/api';
+// Set env var BEFORE any module is imported so the module-level USE_MOCK
+// constant reads the correct value at initialization time.
+process.env.NEXT_PUBLIC_USE_MOCK = 'true';
 
-// Explicitly control USE_MOCK for test isolation
-beforeAll(() => {
-    process.env.NEXT_PUBLIC_USE_MOCK = 'true';
-});
+import { api } from '@/lib/api';
 
 afterAll(() => {
     delete process.env.NEXT_PUBLIC_USE_MOCK;
