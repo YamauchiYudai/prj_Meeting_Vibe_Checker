@@ -10,6 +10,8 @@ export const useAnalysis = (sessionId: string | null, captureFrame: () => string
     const [error, setError] = useState<string | null>(null);
 
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    // Ref to always call the latest performAnalysis, avoiding stale closures in setInterval
+    const performAnalysisRef = useRef<() => Promise<void>>(async () => { });
 
     const performAnalysis = useCallback(async () => {
         if (!sessionId) return;
@@ -29,6 +31,11 @@ export const useAnalysis = (sessionId: string | null, captureFrame: () => string
         }
     }, [sessionId, captureFrame]);
 
+    // Keep ref updated so setInterval always invokes the latest callback
+    useEffect(() => {
+        performAnalysisRef.current = performAnalysis;
+    }, [performAnalysis]);
+
     const startAnalysis = useCallback(() => {
         if (!sessionId || isAnalyzing) return;
 
@@ -36,8 +43,8 @@ export const useAnalysis = (sessionId: string | null, captureFrame: () => string
         // Initial analysis
         performAnalysis();
 
-        // Set 2000ms interval as requested
-        intervalRef.current = setInterval(performAnalysis, 2000);
+        // Set 2000ms interval; use ref to avoid stale closures
+        intervalRef.current = setInterval(() => performAnalysisRef.current(), 2000);
     }, [sessionId, isAnalyzing, performAnalysis]);
 
     const stopAnalysis = useCallback(() => {

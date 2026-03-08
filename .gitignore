@@ -24,7 +24,6 @@ env/
 .coverage
 htmlcov/
 dist/
-build/
 .agent/
 .agent.id
 agent_prompt_*.md*

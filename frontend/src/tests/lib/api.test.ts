@@ -1,11 +1,15 @@
 import { api } from '@/lib/api';
 
-describe('api client', () => {
-    beforeEach(() => {
-        // Reset any state if necessary
-        jest.clearAllMocks();
-    });
+// Explicitly control USE_MOCK for test isolation
+beforeAll(() => {
+    process.env.NEXT_PUBLIC_USE_MOCK = 'true';
+});
 
+afterAll(() => {
+    delete process.env.NEXT_PUBLIC_USE_MOCK;
+});
+
+describe('api client', () => {
     it('listSessions should return mock data when USE_MOCK is true', async () => {
         const sessions = await api.listSessions();
         expect(sessions.length).toBeGreaterThan(0);

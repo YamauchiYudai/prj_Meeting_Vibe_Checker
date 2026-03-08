@@ -1,8 +1,12 @@
 import base64
 import gc
+import logging
 import numpy as np
 import cv2
 from deepface import DeepFace
+
+logger = logging.getLogger(__name__)
+
 
 def analyze_frame(frame_base64: str) -> dict:
     """
@@ -32,8 +36,11 @@ def analyze_frame(frame_base64: str) -> dict:
         dominant = result[0]['dominant_emotion']
         return {"dominant_emotion": dominant, "scores": emotions}
 
+    except (KeyboardInterrupt, SystemExit):
+        raise
     except Exception as e:
         # Return neutral on error (e.g., face not found or unparseable frame)
+        logger.warning(f"Frame analysis failed: {type(e).__name__}: {e}")
         return {
             "dominant_emotion": "neutral",
             "scores": {

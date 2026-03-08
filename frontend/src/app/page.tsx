@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -20,6 +21,7 @@ export default function Dashboard() {
         setSessions(data);
       } catch (error) {
         console.error('Failed to fetch sessions:', error);
+        setFetchError('セッションの取得に失敗しました。再読み込みしてください。');
       } finally {
         setIsLoading(false);
       }
@@ -70,6 +72,10 @@ export default function Dashboard() {
 
         {isLoading ? (
           <LoadingSpinner />
+        ) : fetchError ? (
+          <div className="glass rounded-3xl p-20 text-center border border-red-500/20">
+            <p className="text-red-400 font-medium">{fetchError}</p>
+          </div>
         ) : sessions.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sessions.map((session) => (

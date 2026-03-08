@@ -14,7 +14,7 @@ const mockApi = {
     createSession: async (title: string): Promise<Session> => {
         await sleep(500);
         return {
-            id: Math.random().toString(36).substr(2, 9),
+            id: Math.random().toString(36).slice(2, 11),
             title,
             started_at: new Date().toISOString(),
             ended_at: null,
@@ -53,10 +53,12 @@ const mockApi = {
         };
         // Normalize roughly to 1
         const total = Object.values(scores).reduce((a, b) => a + b, 0);
-        Object.keys(scores).forEach(k => (scores[k as keyof EmotionScores] /= total));
+        const normalizedScores = Object.fromEntries(
+            Object.entries(scores).map(([k, v]) => [k, v / total])
+        ) as EmotionScores;
 
         const dominant = emotions[Math.floor(Math.random() * emotions.length)];
-        return { dominant_emotion: dominant, scores };
+        return { dominant_emotion: dominant, scores: normalizedScores };
     },
     getResults: async (id: string): Promise<SessionResultsResponse> => {
         await sleep(800);

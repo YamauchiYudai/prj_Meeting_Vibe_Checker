@@ -6,3 +6,7 @@ __pycache__
 htmlcov
 .env
 alembic.ini
+.mypy_cache
+*.egg-info
+dist
+build
