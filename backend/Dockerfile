@@ -14,7 +14,8 @@ RUN apt-get update && apt-get install -y \
 FROM base AS development
 
 COPY pyproject.toml .
-RUN pip install --no-cache-dir -e ".[dev]"
+RUN pip install --no-cache-dir -e ".[dev]" && \
+    pip install --no-cache-dir ruff mypy
 
 COPY . .
 
