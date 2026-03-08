@@ -1,0 +1,2 @@
+-- Initialize database or set timezone if necessary.
+-- Current deployment uses pure SQLAlchemy migrations.

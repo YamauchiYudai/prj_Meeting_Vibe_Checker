@@ -1,48 +1,69 @@
-# Meeting Vibe Checker (MVP)
+# Meeting Vibe Checker 📊✨
 
-Meeting Vibe Checker は、デジタル会議中の感情のトーンやエンゲージメントレベルをリアルタイムで解析・可視化するツールです。
+Meeting Vibe Checkerは、会議中の参加者の表情をリアルタイムで解析し、その場の「空気感（Vibe）」を可視化するWebアプリケーションです。
+プライバシーに配慮しつつ、最新のAI技術（DeepFace）を用いて感情の変遷をグラフ化します。
 
 ## 🌟 主な機能
+- **リアルタイム感情解析**: カメラ映像から「幸福」「驚き」「中立」などの感情を3〜5秒間隔で抽出。
+- **プライバシー保護設計**: 解析に使用した画像フレームはメモリ上でのみ処理され、即座に破棄されます（DBやディスクには一切保存されません）。
+- **セッション管理**: 会議ごとにセッションを作成し、過去のデータの振り返りが可能。
+- **ダイナミック可視化**: 解析結果を美しいチャートとゲージでリアルタイムに表示。
 
-- **リアルタイム表情解析**: Webカメラの映像から参加者の表情を読み取り、感情（喜び、悲しみ、怒りなど）を分析します。
-- **ライブダッシュボード**: 解析された「雰囲気（Vibe）」をグラフやメトリクスで即座に表示します。
-- **プライバシー保護**: 画像データはローカルのメモリ内でのみ処理され、ディスクへの保存や外部への送信は一切行われません。
+## 🏗 システム構成
+本システムは Docker Compose を利用した3層アーキテクチャで構成されています。
 
-## 🛠 技術スタック
+- **Frontend**: Next.js (TypeScript, Tailwind CSS, Recharts)
+- **Backend API**: FastAPI (Python 3.11, DeepFace, OpenCV)
+- **Database**: PostgreSQL (SQLAlchemy Async, Alembic)
 
-- **Language**: Python 3.9+
-- **GUI Framework**: Streamlit (リアルタイムダッシュボード用)
-- **AI/CV Library**: 
-  - [Py-Feat](https://py-feat.org/): 表情解析 (HOG-PCA / SVMモデル)
-  - [OpenCV](https://opencv.org/): 画像キャプチャ・前処理
-  - [streamlit-webrtc](https://github.com/whitphx/streamlit-webrtc): 低レイテンシなWebRTCストリーミング
-- **Data Handling**: Pandas, NumPy
+---
 
-## 🏗 アーキテクチャ
+## 🚀 クイックスタート
 
-本プロジェクトは、`streamlit-webrtc` を利用した **Threaded Callback Architecture** を採用しています。ビデオフレームのキャプチャと Py-Feat による解析はバックグラウンドスレッドで実行され、UIスレッドをブロックすることなくリアルタイムな可視化を実現します。
+### 1. 前提条件
+- Docker および Docker Desktop がインストールされていること。
 
-詳細は `.kiro/specs/initial-setup/design.md` を参照してください。
+### 2. セットアップ
+プロジェクトのルートディレクトリで以下のコマンドを実行します。
 
-## 🚀 はじめかた
-
-### 1. 環境構築
 ```bash
-# 仮想環境の作成 (推奨)
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+# 環境変数の準備 (必要に応じて .env を編集)
+cp .env.example .env
 
-# 依存ライブラリのインストール
-pip install -r requirements.txt
+# 全サービスのビルドと起動
+docker compose up --build -d
 ```
 
-### 2. アプリケーションの起動
+### 3. アクセス
+- **Frontend**: [http://localhost:3000](http://localhost:3000)
+- **Backend API Docs (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+---
+
+## 🛠 開発と運用
+
+### バックエンドの技術的詳細
+- **AIエンジン**: DeepFace (VGG-Face/TensorFlow)。表情から7つの感情スコアを算出します。
+- **非同期処理**: FastAPI + SQLAlchemy (Async) により、重い画像解析リクエストとDB操作を並列処理。
+- **最適化**: TensorFlow の互換性を保つため `tf-keras` を導入し、OpenCVのOS依存ライブラリをDockerで解決済み。
+
+### フロントエンドの技術的詳細
+- **ライブUI**: Lucide React と Recharts を使用したプレミアムなデザイン。
+- **カメラ連携**: ブラウザの `getUserMedia` API を使用し、Base64形式でバックエンドへフレームを送信。
+
+### テストの実行
+バックエンドの単体テストおよび機能テストを実行します。
+
 ```bash
-streamlit run src/app.py
+docker compose run --rm -e PYTHONPATH=/app backend pytest tests/ -v
 ```
 
-## 🔒 プライバシーポリシー (Privacy First)
+---
 
-- 全ての画像処理はユーザーのローカルPC内で行われます。
-- キャプチャした画像フレームは解析後、直ちにメモリから破棄されます。
-- raw画像や個人を特定できるデータが永続化されることはありません。
+## 🔒 セキュリティとプライバシー
+- データベースには感情スコア（数値）とタイムスタンプのみを保存します。
+- ユーザーの顔画像、ビデオストリームは一切保存されません。
+- CORS設定により、許可されたオリジン（デフォルト: localhost:3000）からのリクエストのみを受け付けます。
+
+## 📝 ライセンス
+本プロジェクトは内部開発用MVPとして作成されました。

@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0a0f1e;
+  --color-background-alt: #0d1530;
+  --color-accent-cyan: #00d4ff;
+  --color-accent-purple: #7c5cfc;
+  
+  --color-emotion-happy: #FFD700;
+  --color-emotion-sad: #4169E1;
+  --color-emotion-angry: #FF4500;
+  --color-emotion-neutral: #808080;
+  --color-emotion-surprised: #FFA500;
+  --color-emotion-fearful: #9370DB;
+  --color-emotion-disgusted: #2E8B57;
+
+  --background-image-gradient-premium: linear-gradient(135deg, #00d4ff 0%, #7c5cfc 100%);
+}
+
+:root {
+  --background: #0a0f1e;
+  --foreground: #ffffff;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  min-height: 100vh;
+  background-attachment: fixed;
+}
+
+/* Glassmorphism Utility */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.text-gradient {
+  background: var(--background-image-gradient-premium);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
