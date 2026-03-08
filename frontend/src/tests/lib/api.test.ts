@@ -1,11 +1,17 @@
 // Set env var BEFORE any module is imported so the module-level USE_MOCK
 // constant reads the correct value at initialization time.
+const _originalUseMock = process.env.NEXT_PUBLIC_USE_MOCK;
 process.env.NEXT_PUBLIC_USE_MOCK = 'true';
 
 import { api } from '@/lib/api';
 
 afterAll(() => {
-    delete process.env.NEXT_PUBLIC_USE_MOCK;
+    // Restore the original value to avoid polluting other test suites
+    if (_originalUseMock === undefined) {
+        delete process.env.NEXT_PUBLIC_USE_MOCK;
+    } else {
+        process.env.NEXT_PUBLIC_USE_MOCK = _originalUseMock;
+    }
 });
 
 describe('api client', () => {

@@ -1,4 +1,5 @@
 from typing import List
+from urllib.parse import urlparse
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,10 +14,12 @@ def validate_database_url_prefix(url: str) -> None:
     """Raise a clear error early if DATABASE_URL uses a synchronous DB driver."""
     if not any(url.startswith(prefix) for prefix in _ASYNC_URL_PREFIXES):
         accepted = ", ".join(_ASYNC_URL_PREFIXES)
+        parsed = urlparse(url)
+        masked = f"{parsed.scheme}://<credentials-redacted>@{parsed.hostname or '?'}"
         raise ValueError(
             f"DATABASE_URL must use an async driver. "
             f"Accepted prefixes: {accepted}. "
-            f"Got: {url!r}"
+            f"Got scheme: {masked}"
         )
 
 
@@ -32,11 +35,12 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> List[str]:
-        origins = [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
-        # Guard against wildcard + credentials — Starlette forbids this combination
-        if origins == ["*"]:
+        # Filter out empty strings that can appear with trailing commas
+        origins = [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+        # Guard against wildcard anywhere in the list — Starlette forbids wildcard + credentials
+        if "*" in origins:
             raise ValueError(
-                "CORS_ORIGINS='*' is not allowed when allow_credentials=True. "
+                "CORS_ORIGINS must not contain '*' when allow_credentials=True. "
                 "Specify explicit origins instead (e.g., http://localhost:3000)."
             )
         return origins
