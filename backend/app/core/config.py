@@ -25,7 +25,7 @@ def validate_database_url_prefix(url: str) -> None:
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Meeting Vibe Checker API"
-    DATABASE_URL: str
+    DATABASE_URL: str = ""
     CORS_ORIGINS: str = "http://localhost:3000"
 
     model_config = SettingsConfigDict(

@@ -3,7 +3,7 @@ import gc
 import logging
 import numpy as np
 import cv2
-from deepface import DeepFace
+from deepface import DeepFace  # type: ignore[import-untyped]
 
 logger = logging.getLogger(__name__)
 

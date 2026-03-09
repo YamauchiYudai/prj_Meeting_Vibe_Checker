@@ -44,8 +44,8 @@ async def end_session(session_id: UUID, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Session not found")
 
     if db_session.status != "ended":
-        db_session.status = "ended"
-        db_session.ended_at = datetime.now(timezone.utc)
+        db_session.status = "ended"  # type: ignore[assignment]
+        db_session.ended_at = datetime.now(timezone.utc)  # type: ignore[assignment]
         db.add(db_session)
         await db.commit()
         await db.refresh(db_session)
